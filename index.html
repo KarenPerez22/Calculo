@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Resolver Desigualdades</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 30px; background-color: #f5f5f5; }
+    input, button { padding: 10px; font-size: 16px; margin: 5px; }
+    .resultado { margin-top: 20px; font-weight: bold; color: darkblue; }
+  </style>
+</head>
+<body>
+  <h2>Resolver Desigualdades Lineales y Cuadráticas</h2>
+  <p>Ejemplo: <code>2x + 3 > 7</code> o <code>x^2 - 4x <= 0</code></p>
+  
+  <input type="text" id="desigualdad" size="40" placeholder="Escribe una desigualdad con x">
+  <button onclick="resolverDesigualdad()">Resolver</button>
+
+  <div class="resultado" id="resultado"></div>
+
+  <script>
+    function resolverDesigualdad() {
+      const entrada = document.getElementById("desigualdad").value;
+      const resultadoDiv = document.getElementById("resultado");
+      try {
+        const desigualdad = entrada.replace(/\s+/g, "");
+        const operadores = ['<', '<=', '>', '>='];
+
+        let operador = operadores.find(op => desigualdad.includes(op));
+        if (!operador) {
+          resultadoDiv.innerHTML = "⚠️ Operador no válido. Usa <, <=, >, o >=";
+          return;
+        }
+
+        const [ladoIzq, ladoDer] = desigualdad.split(operador).map(expr => math.simplify(expr));
+        const expr = math.simplify(`${ladoIzq} - (${ladoDer})`).toString();
+        const grado = math.degree(expr, 'x');
+
+        if (grado === 1) {
+          const solucion = math.solve(expr + " = 0", 'x')[0];
+          let resultado = "";
+
+          if (operador === '>') resultado = `Solución: x ∈ (${solucion}, ∞)`;
+          else if (operador === '>=') resultado = `Solución: x ∈ [${solucion}, ∞)`;
+          else if (operador === '<') resultado = `Solución: x ∈ (-∞, ${solucion})`;
+          else if (operador === '<=') resultado = `Solución: x ∈ (-∞, ${solucion}]`;
+
+          resultadoDiv.innerHTML = resultado;
+        }
+        else if (grado === 2) {
+          const f = math.parse(expr);
+          const coef = math.coefficients(f, 'x');
+          const [a, b, c] = [coef[2] || 0, coef[1] || 0, coef[0] || 0];
+
+          const disc = b*b - 4*a*c;
+          if (disc < 0) {
+            if ((operador === '<' || operador === '<=') && a > 0)
+              resultadoDiv.innerHTML = "Solución: x ∈ ℝ";
+            else
+              resultadoDiv.innerHTML = "No hay solución real.";
+            return;
+          }
+
+          const x1 = (-b - Math.sqrt(disc)) / (2*a);
+          const x2 = (-b + Math.sqrt(disc)) / (2*a);
+          const [min, max] = [Math.min(x1,x2), Math.max(x1,x2)];
+
+          let solucion = "";
+          if (operador === '<') solucion = `x ∈ (${min}, ${max})`;
+          if (operador === '<=') solucion = `x ∈ [${min}, ${max}]`;
+          if (operador === '>') solucion = `x ∈ (-∞, ${min}) ∪ (${max}, ∞)`;
+          if (operador === '>=') solucion = `x ∈ (-∞, ${min}] ∪ [${max}, ∞)`;
+
+          resultadoDiv.innerHTML = `Solución: ${solucion}`;
+        } else {
+          resultadoDiv.innerHTML = "Solo se admiten ecuaciones de primer o segundo grado.";
+        }
+      } catch (error) {
+        resultadoDiv.innerHTML = "⚠️ Error al procesar la desigualdad.";
+      }
+    }
+  </script>
+</body>
+</html>
