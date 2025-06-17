@@ -2,101 +2,129 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Resolver Desigualdades y Graficar</title>
+  <title>Resolver Desigualdades</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/11.11.0/math.min.js"></script>
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 30px; background: #f0f0f0; }
-    input, button { padding: 10px; font-size: 16px; margin: 5px; width: 350px; }
-    #resultado { margin-top: 20px; font-weight: bold; color: #003366; }
-    #grafico { margin-top: 30px; }
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      padding: 40px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      width: 100%;
+      max-width: 400px;
+      margin: 10px 0;
+    }
+    #resultado {
+      margin-top: 20px;
+      font-weight: bold;
+      color: #003366;
+    }
+    #grafico {
+      margin-top: 30px;
+      width: 100%;
+      height: 400px;
+    }
   </style>
 </head>
 <body>
-  <h2>Desigualdades Lineales y Cuadráticas</h2>
-  <p>Ejemplo: <code>x^2 - 4x <= 0</code> o <code>2x + 1 > 5</code></p>
 
-  <input type="text" id="desigualdad" placeholder="Escribe una desigualdad con x">
+  <h2>Resolver Desigualdades Lineales y Cuadráticas</h2>
+  <p>Ejemplos válidos: <code>x^2 - 4x &lt;= 0</code> o <code>2x + 5 &gt; 11</code></p>
+
+  <input id="entrada" type="text" placeholder="Ingresa una desigualdad con x">
   <button onclick="resolverDesigualdad()">Resolver y Graficar</button>
 
   <div id="resultado"></div>
-  <div id="grafico" style="width: 100%; height: 400px;"></div>
+  <div id="grafico"></div>
 
   <script>
     function resolverDesigualdad() {
-      const entrada = document.getElementById("desigualdad").value.replace(/\s+/g, "");
+      const input = document.getElementById("entrada").value.replace(/\s+/g, "");
       const resultadoDiv = document.getElementById("resultado");
       const graficoDiv = document.getElementById("grafico");
 
-      const operadores = ['<=', '>=', '<', '>'];
-      let operador = operadores.find(op => entrada.includes(op));
+      const operadores = ["<=", ">=", "<", ">"];
+      const operador = operadores.find(op => input.includes(op));
       if (!operador) {
         resultadoDiv.innerHTML = "⚠️ Usa un operador válido: <, <=, > o >=";
         return;
       }
 
-      const [ladoIzq, ladoDer] = entrada.split(operador).map(expr => math.simplify(expr));
-      const expr = math.simplify(`${ladoIzq} - (${ladoDer})`);
-      const funcion = expr.toString();
+      const [lhs, rhs] = input.split(operador);
+      const ladoIzq = math.simplify(lhs);
+      const ladoDer = math.simplify(rhs);
+      const expresion = math.simplify(`${ladoIzq} - (${ladoDer})`);
+      const funcion = expresion.toString();
 
-      let f = math.parse(funcion);
-      const grado = math.degree(expr, 'x');
+      const grado = math.degree(expresion, 'x');
       let solucion = "";
 
-      // Resolver algebraicamente
-      if (grado === 1) {
-        const root = math.solve(`${funcion} = 0`, 'x')[0];
-        if (operador === '>') solucion = `x ∈ (${root}, ∞)`;
-        if (operador === '>=') solucion = `x ∈ [${root}, ∞)`;
-        if (operador === '<') solucion = `x ∈ (-∞, ${root})`;
-        if (operador === '<=') solucion = `x ∈ (-∞, ${root}]`;
-      } else if (grado === 2) {
-        const coef = math.coefficients(f, 'x');
-        const [a, b, c] = [coef[2] || 0, coef[1] || 0, coef[0] || 0];
-        const disc = b*b - 4*a*c;
-        if (disc < 0) {
-          solucion = (operador === '<' || operador === '<=') && a > 0
-            ? "x ∈ ℝ (siempre verdadera)"
-            : "No hay solución real.";
+      try {
+        if (grado === 1) {
+          const root = math.solve(`${funcion} = 0`, 'x')[0];
+          if (operador === '>') solucion = `x ∈ (${root}, ∞)`;
+          if (operador === '>=') solucion = `x ∈ [${root}, ∞)`;
+          if (operador === '<') solucion = `x ∈ (-∞, ${root})`;
+          if (operador === '<=') solucion = `x ∈ (-∞, ${root}]`;
+        } else if (grado === 2) {
+          const f = math.parse(funcion);
+          const coef = math.coefficients(f, 'x');
+          const [a, b, c] = [coef[2] || 0, coef[1] || 0, coef[0] || 0];
+          const disc = b*b - 4*a*c;
+
+          if (disc < 0) {
+            solucion = ((operador === '<' || operador === '<=') && a > 0)
+              ? "x ∈ ℝ (siempre verdadera)"
+              : "No hay solución real.";
+          } else {
+            const x1 = (-b - Math.sqrt(disc)) / (2*a);
+            const x2 = (-b + Math.sqrt(disc)) / (2*a);
+            const [min, max] = [Math.min(x1, x2), Math.max(x1, x2)];
+
+            if (operador === '<') solucion = `x ∈ (${min}, ${max})`;
+            if (operador === '<=') solucion = `x ∈ [${min}, ${max}]`;
+            if (operador === '>') solucion = `x ∈ (-∞, ${min}) ∪ (${max}, ∞)`;
+            if (operador === '>=') solucion = `x ∈ (-∞, ${min}] ∪ [${max}, ∞)`;
+          }
         } else {
-          const x1 = (-b - Math.sqrt(disc)) / (2*a);
-          const x2 = (-b + Math.sqrt(disc)) / (2*a);
-          const [min, max] = [Math.min(x1, x2), Math.max(x1, x2)];
-          if (operador === '<') solucion = `x ∈ (${min}, ${max})`;
-          if (operador === '<=') solucion = `x ∈ [${min}, ${max}]`;
-          if (operador === '>') solucion = `x ∈ (-∞, ${min}) ∪ (${max}, ∞)`;
-          if (operador === '>=') solucion = `x ∈ (-∞, ${min}] ∪ [${max}, ∞)`;
+          solucion = "⚠️ Solo se admiten desigualdades de primer o segundo grado.";
         }
-      } else {
-        solucion = "Solo se admiten desigualdades de primer o segundo grado.";
+
+        resultadoDiv.innerHTML = "📌 Solución: " + solucion;
+
+        // Gráfica de la función
+        const x_vals = math.range(-10, 10, 0.1).toArray();
+        const y_vals = x_vals.map(x => {
+          try {
+            return expresion.evaluate({x});
+          } catch {
+            return NaN;
+          }
+        });
+
+        Plotly.newPlot(graficoDiv, [{
+          x: x_vals,
+          y: y_vals,
+          type: 'scatter',
+          mode: 'lines',
+          name: `f(x) = ${funcion}`,
+          line: { color: 'blue' }
+        }], {
+          title: `Gráfica de f(x) = ${funcion}`,
+          xaxis: { title: 'x' },
+          yaxis: { title: 'f(x)' },
+          margin: { t: 40 }
+        });
+
+      } catch (err) {
+        resultadoDiv.innerHTML = "⚠️ Ocurrió un error al procesar la desigualdad.";
       }
-
-      resultadoDiv.innerHTML = "📌 Solución: " + solucion;
-
-      // Graficar
-      const x_vals = math.range(-10, 10, 0.1).toArray();
-      const y_vals = x_vals.map(x => {
-        try {
-          return expr.evaluate({x});
-        } catch {
-          return NaN;
-        }
-      });
-
-      Plotly.newPlot(graficoDiv, [{
-        x: x_vals,
-        y: y_vals,
-        type: 'scatter',
-        mode: 'lines',
-        name: funcion,
-        line: {color: 'darkblue'}
-      }], {
-        title: `Gráfica de f(x) = ${funcion}`,
-        xaxis: {title: 'x'},
-        yaxis: {title: 'f(x)'},
-        margin: {t: 40}
-      });
     }
   </script>
+
 </body>
 </html>
